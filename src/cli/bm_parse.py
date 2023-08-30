@@ -1,37 +1,84 @@
 from collections import defaultdict
 
 class ModifierSettings:
-    def __init__(self):
-        self.bpm = -1
-        self.hp_drain = -1
-        self.circle_size = -1
-        self.overall_difficulty = -1
-        self.approach_rate = -1
-        self.slider_multiplier = -1
-        self.slider_tick_rate = -1
+    UNDEFINED_FIELD = 0
 
-class Beatmap:
-    BEATMAP_VERSION_IDENTIFIER = "osu file format v14"
-    BEATMAP_PAIRED_SECTIONS = ["General", "Editor", "Metadata", "Difficulty", "Colours"]
-    BEATMAP_COMMA_SECTIONS = ["Events", "TimingPoints", "HitObjects"]
-    BEATMAP_SECTIONS_LABELS = BEATMAP_PAIRED_SECTIONS + BEATMAP_COMMA_SECTIONS
+    def __init__(self, init: int):
+        self.bpm = init
+        self.rate = init
+        self.hp_drain = init
+        self.circle_size = init
+        self.overall_difficulty = init
+        self.approach_rate = init
+
+        self.UNDEFINED_FIELD = init
+
+    def validate_settings(self):
+        setting_fields = vars(self)
+
+        if self.bpm != self.UNDEFINED_FIELD and self.rate != self.UNDEFINED_FIELD:
+            return (False, "ARGUMENT ERROR: song speed ambiguity - rate and bpm cannot both be used at once")
+
+        for setting, value in setting_fields.items():
+            if value == self.UNDEFINED_FIELD:
+                continue
+
+            match setting:
+                case 'bpm':
+                    if value <= 0:
+                        return (False, 'ARGUMENT ERROR: bpm must be > 0')
+                
+                case 'rate':
+                    if value > 2 or value < 1:
+                        return (False, 'ARGUMENT ERROR: rate must be between 1 and 2')
+                    
+                case 'hp_drain':
+                    if value > 10 or value < 0:
+                        return (False, 'ARGUMENT ERROR: HP drain must be between 0 and 10')
+                    
+                case 'circle_size':
+                    if value > 10 or value < 0:
+                        return (False, 'ARGUMENT ERROR: CS must be between 0 and 10')
+                    
+                case 'overall_difficulty':
+                    if value > 10 or value < 0:
+                        return (False, 'ARGUMENT ERROR: OD must be between 0 and 10')
+                    
+                case 'approach_rate':
+                    if value > 10 or value < 0:
+                        return (False, 'ARGUMENT ERROR: AR must be between 0 and 10')
+
+        return (True, 'SUCCESS')
+
+class BeatmapBuilder:
+    BEATMAP_VERSION_IDENTIFIER = 'osu file format v14'
+    BEATMAP_PAIRED_SECTIONS = ['General', 'Editor', 'Metadata', 'Difficulty', 'Colours']
+    BEATMAP_COMMA_SECTIONS = ['Events', 'TimingPoints', 'HitObjects']
+    BEATMAP_SECTIONS_LABELS = ['General', 'Editor', 'Metadata', 'Difficulty', 'Events', 'TimingPoints', 'Colours', 'HitObjects']
+
+    BEATMAP_PAIRED_SECTION_FORMAT = {
+        'General': '{key}: {value}',
+        'Editor': '{key}: {value}',
+        'Metadata': '{key}:{value}',
+        'Difficulty': '{key}:{value}',
+        'Colours': '{key} : {value}',
+    }
+
+    BEATMAP_TAG_NAME = 'osubma'
 
     MINUTE_MS = 60000
 
     def __init__(self, file_path: str):        
         self.__bm_file_path = file_path
-        self.__bm_buffer = self.__split_sections()
+        self.__bm_buffer = self.__split_buffer_sections()
         self.__bm_sections = {}
 
-        # for i in self.__bm_buffer:
-        #     print(i)
-
         if self.BEATMAP_VERSION_IDENTIFIER not in self.__bm_buffer[0]:
-            print("PARSING ERROR: unrecognized beatmap version - .osu file format must be version 14")
+            print('PARSING ERROR: unrecognized beatmap version - .osu file format must be version 14')
         
     def parse(self):
         for section in self.__bm_buffer:
-            section_semi_parsed = self._parse_section(section)
+            section_semi_parsed = self.__format_section(section)
             
             if section_semi_parsed != None:
                 self.__bm_sections.update(section_semi_parsed)
@@ -47,28 +94,96 @@ class Beatmap:
                 self.__bm_sections[section][line_index] = line_content.strip().split(section_delimiter)
 
     
-    def apply(self, settings: ModifierSettings):
-        self.__bm_settings = settings
-        rate = 1
+    def modify(self, settings: ModifierSettings):
+        general_settings = self.__bm_sections['General']
+        time_point_settings = self.__bm_sections['TimingPoints']
+        metadata_settings = self.__bm_sections['Metadata']
 
-        print(self.__bpm())
+        modified_rate = settings.rate
 
-        if settings.bpm > 0:
-            current_bpm = self.__bpm()
+        if settings.bpm != ModifierSettings.UNDEFINED_FIELD:
+            modified_rate = settings.bpm / self.__persistent_bpm()
 
-            rate = settings.bpm / current_bpm
+        if modified_rate != ModifierSettings.UNDEFINED_FIELD:
+            for tp_index in range(len(self.__bm_sections['TimingPoints'])):
+                time_point = time_point_settings[tp_index]
 
-        print(rate)
+                if len(time_point) < 8:
+                    continue
 
+                time_point[0] = str(int(float(time_point[0]) // modified_rate))
+
+                if int(time_point[6]) == 1:
+                    time_point[1] = str(float(time_point[1]) / modified_rate)
+
+            for hit_object_index in range(len(self.__bm_sections['HitObjects'])):
+                hit_object = self.__bm_sections['HitObjects'][hit_object_index]
+
+                if len(hit_object) < 5:
+                    continue
+
+                hit_object[2] = str(int(float(hit_object[2]) // modified_rate))
+
+            general_settings[2][1] = str(int(int(general_settings[2][1]) // modified_rate))
+        
+        if settings.hp_drain != ModifierSettings.UNDEFINED_FIELD:
+            self.__bm_sections['Difficulty'][0][1] = str(int(settings.hp_drain))
+
+        if settings.circle_size != ModifierSettings.UNDEFINED_FIELD:
+            self.__bm_sections['Difficulty'][1][1] = str(settings.circle_size)
+
+        if settings.overall_difficulty != ModifierSettings.UNDEFINED_FIELD:
+            self.__bm_sections['Difficulty'][2][1] = str(settings.overall_difficulty)
+
+        if settings.approach_rate != ModifierSettings.UNDEFINED_FIELD:
+            self.__bm_sections['Difficulty'][3][1] = str(settings.approach_rate)
+
+        metadata_settings[5] += f' - {self.BEATMAP_TAG_NAME} {modified_rate}'
+        metadata_settings[7] += self.BEATMAP_TAG_NAME
         
 
+    def serialize(self):
+        if self.__bm_sections == {}:
+            print('SERIALIZATION ERROR: nothing was parsed - nothing to serialize')
+            return
+        
+        beatmap_serialized = []
 
+        for section_label in self.BEATMAP_SECTIONS_LABELS:
+            section_serialized = section_label + '\n'
+            section_serialized = f'[{section_label}]\n'
+            section_format_paired = False
 
-    def dump(self):
-        print("Dumping Shit")
+            if section_label in self.BEATMAP_PAIRED_SECTIONS:
+                section_format_paired = True
 
-    def _parse_section(self, bm_section_buffer: str):
-        bm_section_line_buffer = bm_section_buffer.split('\n')
+            for section_line in self.__bm_sections[section_label]:
+                if len(section_line) == 1 and section_line[0] == '':
+                    section_serialized += '\n'
+                    continue
+
+                if section_format_paired:
+                    key = section_line[0]
+                    value = ':'.join(section_line[1:])
+
+                    section_serialized += (f'{key}:{value}')
+
+                else:
+                    section_serialized += ','.join(section_line)
+
+                section_serialized += '\n'
+            
+            beatmap_serialized.append(section_serialized)
+        
+        return 'osu file format v14\n\n' + ''.join(beatmap_serialized)
+                
+    
+    def __read_to_buffer(self):
+        with open(self.__bm_file_path, 'r') as bm_file_descriptor:
+            return bm_file_descriptor.read()
+        
+    def __format_section(self, bm_section_buffer: str):
+        bm_section_line_buffer = bm_section_buffer.split('\n')[:-1]
         bm_section_id = bm_section_line_buffer[0]
 
         if bm_section_id[0] != '[' and bm_section_id[-1] != ']':
@@ -80,11 +195,7 @@ class Beatmap:
         
         return bm_section_entry
     
-    def __read_to_buffer(self):
-        with open(self.__bm_file_path, 'r') as bm_file_descriptor:
-            return bm_file_descriptor.read()
-    
-    def __split_sections(self):
+    def __split_buffer_sections(self):
         buffer = self.__read_to_buffer()
         section_buffer = []
 
@@ -100,10 +211,10 @@ class Beatmap:
                     label_cursor += 1
 
                 section_label = buffer[buffer_cursor + 1 : label_cursor]
-
-                if section_label in self.BEATMAP_SECTIONS_LABELS:
+                
+                if section_label.strip() in self.BEATMAP_SECTIONS_LABELS:
                     section_buffer.append(buffer[section_frame_front : buffer_cursor])
-
+                    
                     section_frame_front = buffer_cursor
                 
             buffer_cursor += 1
@@ -112,7 +223,7 @@ class Beatmap:
 
         return section_buffer
     
-    def __bpm(self):
+    def __persistent_bpm(self):
         tp_duration = defaultdict(int)
         current_bl = 0
         current_bl_time = 0
@@ -139,6 +250,3 @@ class Beatmap:
         bl_max = max(tp_duration, key=lambda k: tp_duration[k])
 
         return self.MINUTE_MS /  bl_max
-
-
-        
