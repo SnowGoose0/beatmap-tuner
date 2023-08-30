@@ -1,13 +1,20 @@
-import sys
 import random
 import bm_audio
 import bm_parse
+from utils.colors import *
+from utils.log import *
 
-def main():
+def main_process():
+    argv = prompt('enter (space separated) mod options for the beatmap (format: opt=val)\noptions available: bpm (or rate), ar, od, cs, hp')
+
+    if argv == None:
+        return 0
+
     initializer = random.getrandbits(128)
     bm_modification_settings = bm_parse.ModifierSettings(initializer)
 
-    for arg in sys.argv:
+    argv = argv.split(' ')
+    for arg in argv:
         arg_v = arg.split('=')
 
         if len(arg_v) < 2:
@@ -37,7 +44,7 @@ def main():
     argument_validation = bm_modification_settings.validate_settings()
 
     if (not argument_validation[0]):
-        print(argument_validation[1])
+        log(argument_validation[1], TermColors.FAIL, True)
         return 1
 
     rate = 1.189
@@ -55,5 +62,12 @@ def main():
     BM.parse()
     BM.modify(bm_modification_settings)
     bm_modification_settings.validate_settings()
+
+    return 0
+
+def main():
+    while(1):
+        if main_process() > 0:
+            exit(0)
 
 main()
