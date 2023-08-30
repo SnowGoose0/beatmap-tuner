@@ -1,6 +1,5 @@
 import os
 import zipfile
-from copy import copy
 
 class BeatMapOsz:
     def __init__(self, osz_file_path: str):
@@ -35,7 +34,3 @@ class BeatMapOsz:
                     osz_content['misc'].append(file_name)
 
             return osz_content
-
-
-hoshi = BeatMapOsz('./hoshizora.osz')
-print(hoshi.difficulties)

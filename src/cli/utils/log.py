@@ -30,7 +30,10 @@ def prompt(prompt_instruction: str):
 def log(string: str, color: str, new_line: bool):
     if string != '':
         sep = '\n'
-        string_lines = string.split(*list(sep if string.count(sep) else []))
+        string_lines = [string]
+        
+        if '\n' in string:
+            string_lines = string.split(*list(sep if string.count(sep) else []))
 
         for line in string_lines:
             sys.stdout.write(color + __PROMPT_PREFIX + line + '\n' + TermColors.ENDC)
