@@ -1,8 +1,6 @@
-file_name = "test.txt"
-file_contents = ""
-# Open the file in read mode
-with open(file_name, "r") as file:
-    # Read the contents of the file into a string
-    file_contents = file.read()
+from zipfile import ZipFile
 
-print("a\nb\nc\n\n".split('\n')[:-1])
+zip_path = './hoshizora.osz'
+
+with ZipFile(zip_path, mode='r') as osz_archive:
+    osz_archive.extract('Hoshizora no Ima.mp3')  

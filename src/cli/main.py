@@ -1,13 +1,12 @@
 import random
-import bm_audio
-import bm_parse
+import beatmap
 from osz import *
 from utils.colors import *
 from utils.log import *
 
 def main_process():
-    path = prompt('enter the path to the osz file')
-    path = './hoshizora.osz'
+    osz_path = prompt('enter the path to the osz file')
+    osz_path = './hoshizora.osz'
 
     osz = BeatMapOsz('./hoshizora.osz')
     beatmap_difficulties = osz.difficulties
@@ -26,7 +25,7 @@ def main_process():
         return 0
 
     initializer = random.getrandbits(128)
-    bm_modification_settings = bm_parse.ModifierSettings(initializer)
+    bm_modification_settings = beatmap.ModifierSettings(initializer)
 
     argv = argv.split(' ')
     for arg in argv:
@@ -73,10 +72,10 @@ def main_process():
     # bm_read.read_section(buff, '[General]')
     # bm_audio.bm_audio_speed(audio_path, rate)
 
-    # BM = bm_parse.BeatmapBuilder('./hoshizora.osz')
-    # BM.parse()
-    # BM.modify(bm_modification_settings)
-    # bm_modification_settings.validate_settings()
+    BM = beatmap.BeatmapBuilder(osz_path, selected_difficulty)
+    BM.parse()
+    BM.modify(bm_modification_settings)
+    bm_modification_settings.validate_settings()
 
     return 0
 
@@ -85,4 +84,5 @@ def main():
         if main_process() > 0:
             exit(0)
 
-main()
+if __name__ == '__main__':
+    main()

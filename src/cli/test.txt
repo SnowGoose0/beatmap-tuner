@@ -1,5 +1,0 @@
-john
-mark
-sam
-
-george
