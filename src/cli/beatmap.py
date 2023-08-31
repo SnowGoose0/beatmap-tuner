@@ -4,9 +4,9 @@ from collections import defaultdict
 from zipfile import ZipFile
 
 class ModifierSettings:
-    UNDEFINED_FIELD = 0
+    def __init__(self):
+        init = None
 
-    def __init__(self, init: int):
         self.bpm = init
         self.rate = init
         self.hp_drain = init
@@ -14,16 +14,14 @@ class ModifierSettings:
         self.overall_difficulty = init
         self.approach_rate = init
 
-        self.UNDEFINED_FIELD = init
-
     def validate_settings(self):
         setting_fields = vars(self)
 
-        if self.bpm != self.UNDEFINED_FIELD and self.rate != self.UNDEFINED_FIELD:
+        if self.bpm != None and self.rate != None:
             return (False, "ARGUMENT ERROR: song speed ambiguity - rate and bpm cannot both be used at once")
 
         for setting, value in setting_fields.items():
-            if value == self.UNDEFINED_FIELD:
+            if value == None:
                 continue
 
             match setting:
@@ -91,13 +89,16 @@ class BeatmapBuilder:
         general_settings = self.__bm_sections['General']
         time_point_settings = self.__bm_sections['TimingPoints']
         metadata_settings = self.__bm_sections['Metadata']
+        difficulty_settings = self.__bm_sections['Difficulty']
 
         modified_rate = settings.rate
 
-        if settings.bpm != ModifierSettings.UNDEFINED_FIELD:
+        if settings.bpm != None:
             modified_rate = settings.bpm / self.__persistent_bpm()
 
-        if modified_rate != ModifierSettings.UNDEFINED_FIELD:
+        modified_rate = round(modified_rate, 3)
+
+        if modified_rate != None:
             for tp_index in range(len(self.__bm_sections['TimingPoints'])):
                 time_point = time_point_settings[tp_index]
 
@@ -118,28 +119,45 @@ class BeatmapBuilder:
                 hit_object[2] = str(int(float(hit_object[2]) // modified_rate))
 
             general_settings[2][1] = str(int(int(general_settings[2][1]) // modified_rate))
+
+            metadata_settings[5][1] += f' x{modified_rate}'
         
-        if settings.hp_drain != ModifierSettings.UNDEFINED_FIELD:
-            self.__bm_sections['Difficulty'][0][1] = str(int(settings.hp_drain))
+        if settings.hp_drain != None:
+            difficulty_settings[0][1] = str(int(settings.hp_drain))
+            metadata_settings[5][1] += f' HP{settings.hp_drain}'
 
-        if settings.circle_size != ModifierSettings.UNDEFINED_FIELD:
-            self.__bm_sections['Difficulty'][1][1] = str(settings.circle_size)
+        if settings.circle_size != None:
+            difficulty_settings[1][1] = str(settings.circle_size)
+            metadata_settings[5][1] += f' CS{settings.circle_size}'
 
-        if settings.overall_difficulty != ModifierSettings.UNDEFINED_FIELD:
-            self.__bm_sections['Difficulty'][2][1] = str(settings.overall_difficulty)
+        if settings.overall_difficulty != None:
+            difficulty_settings[2][1] = str(settings.overall_difficulty)
+            metadata_settings[5][1] += f' OD{settings.overall_difficulty}'
 
-        if settings.approach_rate != ModifierSettings.UNDEFINED_FIELD:
-            self.__bm_sections['Difficulty'][3][1] = str(settings.approach_rate)
+        if settings.approach_rate != None:
+            difficulty_settings[3][1] = str(settings.approach_rate)
+            metadata_settings[5][1] += f' AR{settings.approach_rate}'
 
         metadata_settings[5] += f' - {self.BEATMAP_TAG_NAME} {modified_rate}'
         metadata_settings[7] += self.BEATMAP_TAG_NAME
 
         if modified_rate > 1:
-            audio_file_name = general_settings[0][1]
-            self.__extract_osz_audio(audio_file_name.strip())
+            audio_file_name = general_settings[0][1].strip()
+            self.__extract_osz_audio(audio_file_name)
 
-            song = BeatmapSong(audio_file_name)
+            audio_export_name = f'{os.path.splitext(audio_file_name)[0]} - x{modified_rate}'
+
+            song = BeatmapSong(audio_file_name, audio_export_name)
             song.speed_up(modified_rate)
+
+            audio_file_name = general_settings[0][1] = ' ' + audio_export_name + '.wav'
+
+        artist = metadata_settings[2][1]
+        title = metadata_settings[0][1]
+        creator = metadata_settings[4][1]
+        version = metadata_settings[5][1]
+
+        return f'{artist} - {title} ({creator}) [{version}]'
         
 
     def serialize(self):
