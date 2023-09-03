@@ -6,7 +6,8 @@ import './App.scss';
 const App = () => {
   const oszUploadRef = useRef(null);
   const [difficulties, setDifficulties] = useState([]);
-  const [difficultiesLoaded, setDifficultiesLoaded] = useState(false);
+  const [isDifficultiesLoaded, setIsDifficultiesLoaded] = useState(false);
+  const [isDifficultySelected, setIsDifficultySelected] = useState(false);
   const [difficultySettings, setDifficultySettings] = useState({});
   const [selectedDifficulty, setSelectedDifficulty] = useState([]);
   const [fileId, setFileId] = useState(null);
@@ -39,7 +40,7 @@ const App = () => {
 
     setFileId(responseData.fid);
     setDifficulties(responseData.fdata);
-    setDifficultiesLoaded(true);
+    setIsDifficultiesLoaded(true);
   }
 
   const handleDifficultySelect = (index) => {
@@ -65,6 +66,7 @@ const App = () => {
       return;
     }
 
+    setIsDifficultySelected(true);
     setDifficultySettings(responseData.fdata);
   }
 
@@ -73,28 +75,35 @@ const App = () => {
       <h1 className="app-title">osu! Beatmap Tuner</h1>
       <form className="osz-form">
         <input type="file" className="osz-upload" ref={oszUploadRef} />
-        <input type="submit" className="osz-upload-submit" onClick={e => handleOszUpload(e)}/>
+        <input type="submit" className="osz-upload-submit btn" onClick={e => handleOszUpload(e)}/>
       </form>
-      <div className="difficulty-selector">
-        {difficulties.map((difficulty, index) => (
-          <div 
-            className={`difficulty diff-${index + 1}`} 
-            key={index} 
-            onClick={() => handleDifficultySelect(index)}
-          >
-            <h6>{difficulty}</h6>
+
+      {
+        isDifficultiesLoaded &&
+        (
+          <div className="difficulty-selector">
+            {difficulties.map((difficulty, index) => (
+              <div 
+                className={`difficulty diff-${index + 1}`} 
+                key={index} 
+                onClick={() => handleDifficultySelect(index)}
+              >
+                <h6>{difficulty}</h6>
+              </div>
+            ))}
+
+            <button className="difficulty-button btn" onClick={() => handleDifficultyUpload()}>Select</button>     
           </div>
-        ))}
+        )
+      }
 
-        {
-          difficultiesLoaded &&
-          <button onClick={() => handleDifficultyUpload()}>Select</button>
-        }
+      {
+        isDifficultySelected &&
+        (
+          <Modifier settings={difficultySettings}/>
+        )
+      }
 
-        <Modifier settings={difficultySettings}/>
-
-        
-      </div>
       <div className="tuner">
       </div>
     </div>
