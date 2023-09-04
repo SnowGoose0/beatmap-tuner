@@ -4,15 +4,24 @@ from collections import defaultdict
 from zipfile import ZipFile
 
 class ModifierSettings:
-    def __init__(self):
+    def __init__(self, settings={}):
         init = None
 
-        self.bpm = init
-        self.rate = init
-        self.hp_drain = init
-        self.circle_size = init
-        self.overall_difficulty = init
-        self.approach_rate = init
+        if settings == {}:
+            self.hp_drain = init
+            self.circle_size = init
+            self.overall_difficulty = init
+            self.approach_rate = init
+            self.bpm = init
+            self.rate = init
+
+        else:
+            self.hp_drain = settings.hp
+            self.circle_size = settings.cs
+            self.overall_difficulty = settings.od
+            self.approach_rate = settings.ar
+            self.bpm = settings.bpm
+            self.rate = settings.rate
 
     def validate_settings(self):
         setting_fields = vars(self)

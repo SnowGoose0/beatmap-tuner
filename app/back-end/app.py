@@ -1,5 +1,6 @@
 import os
 import uuid
+from beatmap import ModifierSettings
 from beatmap import BeatmapBuilder
 from osz import BeatmapOsz
 from flask import Flask, request, jsonify
@@ -40,7 +41,7 @@ def osz_upload():
 
     return jsonify({'fstatus': 0, 'fid': file_uuid, 'fdata': osz.difficulties})
 
-@app.route('/difficulty-select', methods=['POST'])
+@app.route('/difficulty-select', methods=['GET', 'POST'])
 def difficulty_upload():
     data = request.json
 
@@ -57,9 +58,18 @@ def difficulty_upload():
 
     return jsonify({'fstatus': 0, 'fdata': bmap_settings})
 
-@app.route('/what')
-def what():
-    return 'ddd'
+@app.route('/difficulty-export', methods=['GET, POST'])
+def difficulty_export():
+    data = request.json
+
+    file_uuid = data['fid']
+    user_settings = data['settings']
+
+    bmap_settings = ModifierSettings(user_settings)
+    bmap = session_cache[file_uuid]['fmap']
+    bmap.modify(bmap_settings)
+
+    return jsonify({'fstatus': 0})
 
 if __name__ == '__main__':
     app.run(debug=True)
