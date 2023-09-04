@@ -51,4 +51,4 @@ class BeatmapSong():
     def speed_up(self, rate: float):
         speed_proc = multiprocessing.Process(target=self.__speed_up(rate))
         speed_proc.start()
-        speed_proc.join()    
+        speed_proc.join()

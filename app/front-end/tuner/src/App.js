@@ -100,7 +100,7 @@ const App = () => {
       {
         isDifficultySelected &&
         (
-          <Modifier settings={difficultySettings}/>
+          <Modifier settings={difficultySettings} id={fileId}/>
         )
       }
 

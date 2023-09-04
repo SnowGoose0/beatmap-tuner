@@ -58,16 +58,23 @@ def difficulty_upload():
 
     return jsonify({'fstatus': 0, 'fdata': bmap_settings})
 
-@app.route('/difficulty-export', methods=['GET, POST'])
+@app.route('/difficulty-export', methods=['POST'])
 def difficulty_export():
     data = request.json
 
     file_uuid = data['fid']
-    user_settings = data['settings']
+    user_settings = data['fdata']
+
+    print(user_settings)
 
     bmap_settings = ModifierSettings(user_settings)
     bmap = session_cache[file_uuid]['fmap']
-    bmap.modify(bmap_settings)
+    bmap_difficulty_name = bmap.modify(bmap_settings)
+    bmap_modified_buffer = bmap.serialize()
+
+    bmap_export_path = os.path.join('.', 'tmp', str(file_uuid), bmap_difficulty_name)
+    with open('.'.join([bmap_export_path, 'osu']), 'w') as f:
+        f.write(bmap_modified_buffer)
 
     return jsonify({'fstatus': 0})
 

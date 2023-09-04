@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useState, useEffect } from 'react';
 import './Modifier.scss'
 
@@ -9,7 +10,7 @@ const roundFloat = (value, digits) => {
 }
 
 const Modifier = (props) => {
-  const { settings } = props;
+  const { settings, id } = props;
   const [AR, setAR] = useState(0)
   const [HP, setHP] = useState(0)
   const [CS, setCS] = useState(0)
@@ -30,6 +31,31 @@ const Modifier = (props) => {
     setOD(settings.od);
     setRate(settings.rate);
     setBPM(roundFloat(settings.bpm));
+  }
+
+  const handleOszExport = async (e) => {
+    e.preventDefault();
+
+    const exportSettings = {
+      'hp': HP,
+      'ar': AR,
+      'cs': CS,
+      'od': OD,
+      'bpm': BPM,
+      'rate': rate, 
+    }
+
+    const response = await axios
+      .post('http://localhost:5000/difficulty-export', 
+      {
+        'fid': id,
+        'fdata': exportSettings,
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
   }
 
   useEffect(() => {
@@ -98,7 +124,7 @@ const Modifier = (props) => {
       </div>
       <div className="modifier-buttons">
         <button className="modify-reset btn" onClick={handleSetDefault}>Reset</button>
-        <button className="modify-export btn">Export</button>
+        <button className="modify-export btn" onClick={handleOszExport}>Export</button>
       </div>
     </div>
   )

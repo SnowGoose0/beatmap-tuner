@@ -16,12 +16,12 @@ class ModifierSettings:
             self.rate = init
 
         else:
-            self.hp_drain = settings.hp
-            self.circle_size = settings.cs
-            self.overall_difficulty = settings.od
-            self.approach_rate = settings.ar
-            self.bpm = settings.bpm
-            self.rate = settings.rate
+            self.hp_drain = float(settings['hp'])
+            self.circle_size = float(settings['cs'])
+            self.overall_difficulty = float(settings['od'])
+            self.approach_rate = float(settings['ar'])
+            self.bpm = float(settings['bpm'])
+            self.rate = float(settings['rate'])
 
     def validate_settings(self):
         setting_fields = vars(self)
