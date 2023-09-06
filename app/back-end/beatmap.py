@@ -166,8 +166,9 @@ class BeatmapBuilder:
             self.__extract_osz_audio(audio_file_name)
 
             audio_export_name = f'{os.path.splitext(audio_file_name)[0]} - x{modified_rate}'
+            audio_export_path = os.path.dirname(self.__bm_osz_file_path)
 
-            song = BeatmapSong(audio_file_name, audio_export_name)
+            song = BeatmapSong(audio_file_name, audio_export_path, audio_export_name)
             song.speed_up(modified_rate)
 
             audio_file_name = general_settings[0][1] = ' ' + audio_export_name + '.wav'
