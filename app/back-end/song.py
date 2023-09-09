@@ -45,13 +45,6 @@ class BeatmapSong():
         os.remove(self.__audio_path)
 
     def __speed_up(self, speed_multiplier: float):
-        # sound_data, sample_rate = sf.read(self.__tmp_audio_path)
-
-        # sped_sound_data = pyrb.time_stretch(sound_data, sample_rate, speed_multiplier)
-        # export_path = os.path.join(self.__audio_export_path, self.__audio_export_name)
-
-        # sf.write('.'.join([export_path, 'wav']), sped_sound_data, sample_rate, format='wav')
-        
         export_path = os.path.join(self.__audio_export_path, self.__audio_export_name) + '.mp3'
         ffmpeg_subproc = f'ffmpeg -i "{self.__tmp_audio_path}" -filter:a "atempo={speed_multiplier}" -vn "{export_path}"'
 
